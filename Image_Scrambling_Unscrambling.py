@@ -1,3 +1,4 @@
+import math
 from PIL import Image
 import numpy as np
 import random
@@ -14,7 +15,7 @@ from PIL import ImageTk
 from tkinter import filedialog
 from PIL import Image, ImageTk, ImageFilter
 from PIL import Image, ImageTk
-
+import matplotlib.pyplot as plt
 
 
 #created main window
@@ -22,6 +23,9 @@ window = Tk()
 window.geometry("1200x800")
 window.title("Image Scrambling/Unscrambling")
 window.configure(bg="light blue")
+
+
+
 
 
 
@@ -75,6 +79,16 @@ def reverse_shuffle(Shuffled_array,key = None):
                 Shuffled_array[j],Shuffled_array[i]=Shuffled_array[i],Shuffled_array[j]
     return Shuffled_array
 
+def show_histogram(image_array, title):
+  """
+  This function creates a histogram of the pixel intensities in the image.
+  """
+  flattened_array = image_array.flatten()
+  plt.hist(flattened_array)
+  plt.xlabel("Pixel Intensity")
+  plt.ylabel("Frequency")
+  plt.title("Histogram of Original Image")
+  plt.show()
 
 
 def open_img():
@@ -89,7 +103,7 @@ def open_img():
         Array = np.array(pixel_list, dtype=int)
 
         # Resize the image to fit within a smaller size
-        max_width = 400
+        max_width = 300
         max_height = 300
         img = img.resize((max_width, max_height))
 
@@ -101,10 +115,16 @@ def open_img():
         img_label.image = img  # Keep reference to avoid garbage collection
         img_label.place(x=100, y=270)
 
+        entropy = calculate_entropy(Array)
+        print("Entropy of the original image:", entropy)
+
+        # Show histogram of original image
+        show_histogram(Array, "Histogram of Original Image")
+
 
 #scrambling the image
 def en_img():
-    global width, height
+    global width, height, Array
     shuffled = knuth_shuffles(Array)
     print("extracting the pixels from the image......")
     pixels = [tuple(row) for row in shuffled]
@@ -112,16 +132,23 @@ def en_img():
     scrambled_image.putdata(pixels)
     scrambled_image.save("scrambled_image.png")
     # Resize the image to a smaller size
-    resized_image = scrambled_image.resize((400, 300))  # Adjust size as needed
+    resized_image = scrambled_image.resize((300, 300))  # Adjust size as needed
     # Convert PIL Image to PhotoImage
     img = ImageTk.PhotoImage(resized_image)
     # Display the scrambled image on the GUI
     img_label = Label(window, image=img)
     img_label.image = img  # Keep reference to avoid garbage collection
-    img_label.place(x=700, y=270)
+    img_label.place(x=900, y=270)
+
+    # Show histogram of scrambled image
+    show_histogram(shuffled, "Histogram of Scrambled Image")
+    # Calculate and print entropy
+    entropy = calculate_entropy(shuffled)
+    print("Entropy of the image after scramble:", entropy)
 
 
-#unscrambling the image 
+
+#unscrabled 
 def de_img():
     global width, height
     Key = input("kindly insert the key here: ")
@@ -130,14 +157,40 @@ def de_img():
     original_image = Image.new("RGB", (width, height))
     original_image.putdata(pixels)
     original_image.save("original_image.jpg")
+    
     # Resize the image to a smaller size
-    resized_image = original_image.resize((400, 300))  # Adjust size as needed
+    resized_image = original_image.resize((300, 300))  # Adjust size as needed
+
     # Convert PIL Image to PhotoImage
     img = ImageTk.PhotoImage(resized_image)
+    
     # Display the decrypted image on the GUI
     img_label = Label(window, image=img)
     img_label.image = img  # Keep reference to avoid garbage collection
-    img_label.place(x=700, y=270)
+    img_label.place(x=900, y=270)
+
+    # Show histogram of unscrambled image
+    show_histogram(original_array, "Histogram of Unscrambled Image")
+
+    # Calculate and print entropy
+    entropy = calculate_entropy(original_array)
+    print("Entropy of the image after Unscrambled:", entropy)
+
+
+
+def calculate_entropy(image_array):
+    flattened_array = image_array.flatten()
+    pixel_counts = {}
+    total_pixels = len(flattened_array)
+    for pixel in flattened_array:
+        if pixel in pixel_counts:
+            pixel_counts[pixel] += 1
+        else:
+            pixel_counts[pixel] = 1
+    probabilities = [count / total_pixels for count in pixel_counts.values()]
+    entropy = -sum(p * math.log2(p) for p in probabilities if p != 0)
+    return entropy
+
 
 
 
@@ -156,7 +209,7 @@ def main():
     start1.place(x=850, y=150)
 
     # choose button created
-    chooseb = Button(window, text="Choose", command=open_img, font=("Arial", 20), bg="orange", fg="blue", borderwidth=3, relief="raised")
+    chooseb = Button(window, text="Choose", command=open_img, font=("Arial", 20)       ,  bg="orange", fg="blue", borderwidth=3, relief="raised")
     chooseb.place(x=150, y=40)
 
     # Encrypt button created
@@ -180,5 +233,3 @@ def exit_win():
 
 if __name__ == "__main__":
     main()
-
-
